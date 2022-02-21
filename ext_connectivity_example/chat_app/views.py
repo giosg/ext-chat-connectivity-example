@@ -13,6 +13,8 @@ from giosg_api import api
 class ChatView(TemplateView):
     """
     Template view for displaying our simple chat app at /chat-app url.
+
+    GET /chat-app
     """
     template_name = "chat.html"
 
@@ -20,6 +22,8 @@ class ChatView(TemplateView):
 class ChatConversationViewSet(viewsets.ModelViewSet):
     """
     APIs for listing, updating, retrieving and creating chat conversations.
+
+    GET/PUT/PATCH/POST/DELETE /api/chats
     """
     serializer_class = serializers.ChatConversationSerializer
     queryset = models.ChatConversation.objects.all()
@@ -67,6 +71,8 @@ class ChatConversationViewSet(viewsets.ModelViewSet):
 class ChatMessageViewSet(viewsets.ModelViewSet):
     """
     APIs for listing, updating, retrieving and creating chat messages.
+
+    GET/PUT/PATCH/POST/DELETE /api/chats/<chat_id>/messages
     """
     serializer_class = serializers.ChatMessageSerializer
 
