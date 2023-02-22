@@ -41,29 +41,35 @@ class ChatConversationViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         try:
-            existing_visitor = models.Visitor.objects.get(visitor_name=serializer.validated_data["visitor_name"])
-            visitor_secret_id = existing_visitor.giosg_visitor_secret_id
-            visitor_global_id = existing_visitor.giosg_visitor_global_id
-            visitor_id = existing_visitor.giosg_visitor_id
-            access_token = api.get_access_token_for_visitor(settings.GIOSG_ORGANIZATION_ID, visitor_id, visitor_secret_id, visitor_global_id)
+            local_visitor = models.Visitor.objects.get(visitor_name=serializer.validated_data["visitor_name"])
+            visitor_secret_id = local_visitor.giosg_visitor_secret_id
+            visitor_id = local_visitor.giosg_visitor_id
+            access_token = api.get_access_token_for_visitor(settings.GIOSG_ORGANIZATION_ID, visitor_id, visitor_secret_id)
         except models.Visitor.DoesNotExist:
             # Visitor was not found so lets create a new one
             visitor = api.create_giosg_visitor(settings.GIOSG_ORGANIZATION_ID, settings.GIOSG_ROOM_ID)
             visitor_id = visitor["visitor_id"]
+            visitor_secret_id = visitor["visitor_secret_id"]
             access_token = visitor["access_token"]
 
             # Store giosg visitor informatio to our app also
-            models.Visitor.objects.create(
+            local_visitor = models.Visitor.objects.create(
                 giosg_visitor_id=visitor_id,
-                giosg_visitor_secret_id=visitor["visitor_secret_id"],
-                giosg_visitor_global_id=visitor["visitor_global_id"],
+                giosg_visitor_secret_id=visitor_secret_id,
                 visitor_name=serializer.validated_data["visitor_name"]
             )
 
         # Always update visitors name
         api.set_visitor_name(settings.GIOSG_ORGANIZATION_ID, settings.GIOSG_ROOM_ID, visitor_id, serializer.validated_data["visitor_name"])
 
+        # Start new chat
         chat_response = api.create_new_chat_as_visitor(settings.GIOSG_ORGANIZATION_ID, settings.GIOSG_ROOM_ID, visitor_id, access_token)
+        # NOTE: We could create the ChatConversation object to our local database here but it is not needed as
+        # we get it back as a webook, we then handle all messages in same place.
+        # models.ChatConversation.objects.create(
+        #     giosg_chat_id=chat_response["id"],
+        #     visitor=local_visitor,
+        # )
 
         return chat_response
 
@@ -98,6 +104,15 @@ class ChatMessageViewSet(viewsets.ModelViewSet):
             settings.GIOSG_ORGANIZATION_ID,
             visitor_id,
             chat.visitor.giosg_visitor_secret_id,
-            chat.visitor.giosg_visitor_global_id
         )
-        api.send_message_as_visitor(visitor_id, chat.giosg_chat_id, visitor_token, serializer.validated_data["message"])
+        msg_data = api.send_message_as_visitor(visitor_id, chat.giosg_chat_id, visitor_token, serializer.validated_data["message"])
+
+        # NOTE: We could create the ChatMessage object to our local database here but it is not needed as
+        # we get it back as a webook, we then handle all messages in same place.
+        # models.ChatMessage.objects.create(
+        #     chat=chat,
+        #     giosg_message_id=msg_data["id"],
+        #     sender_id=msg_data["sender_id"],
+        #     sender_name="You",
+        #     message=msg_data["message"],
+        # )

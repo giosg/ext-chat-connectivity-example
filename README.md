@@ -11,7 +11,7 @@ This project requires Python 3.8+, virtualenv and pip.
 1. Clone this repository: `git clone https://github.com/giosg/ext-chat-connectivity-example.git`
 2. Make virtualenv and activate it: `mkvirtualenv ext-chat-connectivity-example --python=~/.pyenv/versions/3.8.0/bin/python`
 3. Install Python requirements: `pip install -r requirements.txt`
-4. Run database migrations: `./manage.py migrate`
+4. Change to `ext_connectivity_example` directory and run database migrations: `./manage.py migrate`
 5. Fill in the configuration to `settings.py`. See [Setting up the credentials](https://docs.giosg.com/tutorials/messaging/external_visitor_chat/#setting-up-credentials) section of tutorial.
 5. Start development server `./manage.py runserver`. Test that it can be accessed in `http://localhost:8000`
 

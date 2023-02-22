@@ -57,6 +57,16 @@ const setupClickHandlers = () => {
     await refreshMessageList(true);
   });
 
+  // Allow sending with enter key
+  const messageInput = document.getElementById("message");
+  messageInput.addEventListener("keydown", async (event) => {
+    if (event.key === "Enter") {
+      // Trigger the button element with a click
+      sendButton.click();
+    }
+  });
+
+  // Back button from conversation view to list
   const backButton = document.getElementById("back");
   backButton.addEventListener("click", async () => {
     window.location.reload();
@@ -65,10 +75,9 @@ const setupClickHandlers = () => {
 
 const refreshChatList = async (force) => {
   if (force || new Date() - STATE.lastChatListUpdate > 1000) {
-    console.log("fetching chats..");
-    const response = await fetch("/api/chats");
+    const response = await fetch("/api/chats/");
     const chatList = await response.json();
-    console.log(chatList);
+    console.log("Fetched chats:", chatList);
 
     const chatListEl = document.getElementById("chat-list");
     chatListEl.innerHTML = "";
@@ -87,10 +96,9 @@ const refreshChatList = async (force) => {
 };
 
 const refreshVisitorList = async () => {
-  console.log("fetching visitors..");
   const response = await fetch("/api/visitors");
   const visitorList = await response.json();
-  console.log(visitorList);
+  console.log("Fetched visitors:", visitorList);
 
   const visitorListEl = document.getElementById("visitor-list");
   visitorListEl.innerHTML = "";
@@ -118,8 +126,8 @@ const showChat = async (chatId) => {
 
 const refreshMessageList = async (force) => {
   if (force || new Date() - STATE.lastMessageUpdate > 1000) {
-    console.log("fetching messages..");
-    const response = await fetch(`/api/chats/${STATE.currentChatId}/messages`);
+    console.log("Fetching messages..");
+    const response = await fetch(`/api/chats/${STATE.currentChatId}/messages/`);
     const messageList = await response.json();
     console.log("Messages", messageList);
 
