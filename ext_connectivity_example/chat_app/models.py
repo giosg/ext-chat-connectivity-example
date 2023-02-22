@@ -10,7 +10,6 @@ class Visitor(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     giosg_visitor_id = models.CharField(max_length=256)
     giosg_visitor_secret_id = models.CharField(max_length=256)
-    giosg_visitor_global_id = models.CharField(max_length=256)
     created_at = models.DateTimeField(auto_now_add=True)
     visitor_name = models.CharField(unique=True, max_length=256)
 
@@ -21,7 +20,7 @@ class ChatConversation(models.Model):
     into a "visitor" model.
     """
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    giosg_chat_id = models.CharField(max_length=256)
+    giosg_chat_id = models.CharField(max_length=256, unique=True)
     visitor = models.ForeignKey(Visitor, on_delete=models.CASCADE)
     created_at = models.DateTimeField(auto_now_add=True)
 

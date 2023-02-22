@@ -2,6 +2,7 @@ import requests
 import json
 from django.conf import settings
 from django.core.cache import cache
+from giosg_api.utils import pretty_print_response
 
 
 def _set_visitor_token_to_cache(visitor):
@@ -14,13 +15,13 @@ def _set_visitor_token_to_cache(visitor):
     cache.set(f"access_token_{visitor_id}", visitor_token, cache_ttl)
 
 
-def get_access_token_for_visitor(organization_id, visitor_id, visitor_secret_id, visitor_global_id):
+def get_access_token_for_visitor(organization_id, visitor_id, visitor_secret_id):
     """
     Returns visitor access token from local cache or authenticates against Giosg server if not found
     """
     token = cache.get(f"access_token_{visitor_id}")
     if not token:
-        visitor = authenticate_giosg_visitor(organization_id, visitor_secret_id, visitor_global_id)
+        visitor = authenticate_giosg_visitor(organization_id, visitor_secret_id)
         return visitor["access_token"]
     return token
 
@@ -33,13 +34,13 @@ def create_giosg_visitor(organization_id, room_id):
     visitor_auth_url = f"https://service.giosg.com/api/v5/public/orgs/{organization_id}/auth"
     auth_payload = {
         "visitor_secret_id": None,
-        "visitor_global_id": None
     }
     auth_response = requests.post(visitor_auth_url, data=json.dumps(auth_payload), headers={
         "Content-Type": "application/json",
     })
     auth_response.raise_for_status()
     visitor = auth_response.json()
+    pretty_print_response("post", visitor_auth_url, visitor)
 
     visitor_id = visitor["visitor_id"]
     visitor_token = visitor["access_token"]
@@ -52,11 +53,12 @@ def create_giosg_visitor(organization_id, room_id):
         "Authorization": f"Bearer {visitor_token}"
     })
     visitor_response.raise_for_status()
+    pretty_print_response("post", visitor_api_url, visitor_response)
 
     return visitor
 
 
-def authenticate_giosg_visitor(organization_id, visitor_secret_id, visitor_global_id):
+def authenticate_giosg_visitor(organization_id, visitor_secret_id):
     """
     Authenticates existing Giosg visitors against Giosg servers
     """
@@ -64,13 +66,13 @@ def authenticate_giosg_visitor(organization_id, visitor_secret_id, visitor_globa
     visitor_auth_url = f"https://service.giosg.com/api/v5/public/orgs/{organization_id}/auth"
     auth_payload = {
         "visitor_secret_id": visitor_secret_id,
-        "visitor_global_id": visitor_global_id
     }
     auth_response = requests.post(visitor_auth_url, data=json.dumps(auth_payload), headers={
         "Content-Type": "application/json",
     })
     auth_response.raise_for_status()
     visitor = auth_response.json()
+    pretty_print_response("post", visitor_auth_url, visitor)
     _set_visitor_token_to_cache(visitor)
 
     return visitor
@@ -88,7 +90,9 @@ def set_visitor_name(organization_id, room_id, visitor_id, visitor_name):
         "Authorization": f"Token {settings.GIOSG_API_TOKEN}"
     })
     variable_response.raise_for_status()
-    return variable_response.json()
+    variables = variable_response.json()
+    pretty_print_response("post", visitor_variable_url, variables)
+    return variables
 
 
 def create_new_chat_as_visitor(organization_id, room_id, visitor_id, access_token):
@@ -106,7 +110,9 @@ def create_new_chat_as_visitor(organization_id, room_id, visitor_id, access_toke
     except requests.HTTPError as ex:
         print("Failed to create new visitor chat:", chat_response.content)
         raise ex
-    return chat_response.json()
+    chat_data = chat_response.json()
+    pretty_print_response("post", chat_api_url, chat_data)
+    return chat_data
 
 
 def send_message_as_visitor(visitor_id, chat_id, access_token, message):
@@ -123,7 +129,9 @@ def send_message_as_visitor(visitor_id, chat_id, access_token, message):
         "Authorization": f"Bearer {access_token}"
     })
     msg_response.raise_for_status()
-    return msg_response.json()
+    msg_data = msg_response.json()
+    pretty_print_response("post", api_url, msg_data)
+    return msg_data
 
 
 def get_visitor_id(organization_id, chat_id):
@@ -138,6 +146,7 @@ def get_visitor_id(organization_id, chat_id):
     })
     response.raise_for_status()
     memberships = response.json()["results"]
+    pretty_print_response("post", api_url, response.json())
 
     try:
         visitor_member = next(filter(lambda m: m["member_type"] == "visitor", memberships))

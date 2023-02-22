@@ -7,6 +7,7 @@ from . import serializers
 from chat_app.models import ChatConversation, ChatMessage, Visitor
 
 from giosg_api import api
+from giosg_api.utils import pretty_print_response
 
 
 class GiosgChatWebhookView(APIView):
@@ -27,7 +28,7 @@ class GiosgChatWebhookView(APIView):
         Handle chat webhook from Giosg platform
         """
         # Printing to Django console for debug reasons
-        print(request.body)
+        pretty_print_response("received webhook", request.build_absolute_uri(), request.body)
 
         serializer = serializers.ChatWebhookSerializer(data=request.data)
         if not serializer.is_valid():
@@ -45,11 +46,10 @@ class GiosgChatWebhookView(APIView):
 
                 try:
                     visitor = Visitor.objects.get(giosg_visitor_id=visitor_id)
-                    chat = ChatConversation.objects.create(
+                    chat, _ = ChatConversation.objects.get_or_create(
                         giosg_chat_id=resource_id,
                         visitor=visitor,
                     )
-
                     print("Created", chat)
                 except Visitor.DoesNotExist:
                     print("Visitor was not found so chat was not started by our app and we skip it")
@@ -93,7 +93,7 @@ class GiosgChatMessageWebhookView(APIView):
         Handle message webhook from Giosg platform
         """
         # Printing to Django console for debug reasons
-        print(request.body)
+        pretty_print_response("received webhook", request.build_absolute_uri(), request.body)
 
         serializer = serializers.MessageWebhookSerializer(data=request.data)
         if not serializer.is_valid():
@@ -110,6 +110,7 @@ class GiosgChatMessageWebhookView(APIView):
                 if resource["type"] == "msg":
                     # We ignore all other kinds of messages like join and leave notifications
                     # and care only about text content
+                    # We could also use sender_public_name if we wish
                     sender_name = "Visitor" if resource["sender_type"] == "visitor" and resource["sender_name"] is None else resource["sender_name"]
                     message = ChatMessage.objects.create(
                         giosg_message_id=resource_id,
